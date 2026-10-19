@@ -1,7 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+// API-ключ был захардкожен в исходниках.
+// Метод устранения: только local.properties → BuildConfig (файл в .gitignore).
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    check(file.exists()) {
+        "local.properties not found. Add WEATHER_API_KEY=<your_key> there."
+    }
+    file.inputStream().use { load(it) }
+}
+val weatherApiKey: String = checkNotNull(localProperties.getProperty("WEATHER_API_KEY")) {
+    "Add WEATHER_API_KEY to local.properties (see local.properties.example)."
 }
 
 android {
@@ -16,15 +31,29 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "WEATHER_API_KEY", "\"$weatherApiKey\"")
+    }
+    lint {
+        baseline = file("lint-baseline.xml")
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        create("benchmark") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            // Profileable (manifest) — system traces; not full allocation tracking
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -36,6 +65,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

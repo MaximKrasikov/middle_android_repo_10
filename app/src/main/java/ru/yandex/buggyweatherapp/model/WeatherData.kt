@@ -20,11 +20,9 @@ data class WeatherData(
     val sunsetTime: Long,
     val timezone: Int,
     val timestamp: Long,
-    
-    
     val rawApiData: String,
-    
-    
-    var isFavorite: Boolean = false,
-    var isSelected: Boolean = false
+    // var isFavorite мутировался in-place — LiveData/Compose могли не обновиться.
+    // Метод устранения: val + copy() в ViewModel.
+    val isFavorite: Boolean = false,
+    val isSelected: Boolean = false
 )

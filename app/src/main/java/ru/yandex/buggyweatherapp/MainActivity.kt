@@ -21,38 +21,41 @@ import ru.yandex.buggyweatherapp.ui.theme.BuggyWeatherAppTheme
 import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 
 class MainActivity : ComponentActivity() {
-    
-    private val weatherViewModel = WeatherViewModel()
-    
+
+    // WeatherViewModel() создавался вручную — onCleared() не вызывался,
+    // VM не переживал конфигурацию через ViewModelStore.
+    // Метод устранения: by viewModels().
+    private val weatherViewModel: WeatherViewModel by viewModels()
+
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
+        //  ветки после grant были пустыми — погода не загружалась.
+        // Метод устранения: при любом location permission запускаем fetch.
         when {
-            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true -> {
-                
-            }
-            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true -> {
-                
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true -> {
+                weatherViewModel.fetchCurrentLocationWeather()
             }
             else -> {
-                
+                // permission denied — ошибку покажет ViewModel при следующей попытке
             }
         }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val hasFineLocation = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        
+
         val hasCoarseLocation = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        
+
         if (!hasFineLocation && !hasCoarseLocation) {
             locationPermissionRequest.launch(
                 arrayOf(
@@ -61,9 +64,9 @@ class MainActivity : ComponentActivity() {
                 )
             )
         }
-        
+
         enableEdgeToEdge()
-        
+
         setContent {
             BuggyWeatherAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -75,19 +78,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        
-    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun WeatherAppPreview() {
     BuggyWeatherAppTheme {
-        
         Text("Weather App Preview")
     }
 }
